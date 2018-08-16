@@ -18,6 +18,7 @@ int16_t gyroX, gyroY, gyroZ;
 float rotX, rotY, rotZ;
 
 int topCubePosition = -1;
+int currentPosition;
 String topCubePositionTxt = "";
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(LED_COUNT, LED, NEO_GRB + NEO_KHZ800);
@@ -51,24 +52,31 @@ void setup()
 	colors[3] = pixels.Color(255, 255, 0);
 	colors[4] = pixels.Color(0, 255, 255);
 	colors[5] = pixels.Color(255, 0, 255);
+
+	state = 5;
 }
 
 void loop() 
 {
 	recordAccelRegisters();
 	//recordGyroRegisters();
+	//printData();
 	
-	bool hasChanged = getPosition();
-
-	if (hasChanged)
-	{
-		state = 10;
-	}
-
 	switch (state)
 	{
 		// sleep -> do nothing
 		case 0:
+			break;
+
+		// wait for rotation
+		case 5:
+			currentPosition = getPosition();
+
+			if (currentPosition != topCubePosition)
+			{
+				topCubePosition = currentPosition;
+				state = 10;
+			}
 			break;
 
 		
@@ -96,16 +104,13 @@ void loop()
 		// light up all sides
 		case 20:
 			ledSetAll(colors[topCubePosition]);
-			state = 0;
+			state = 5;
 			break;
 
 		
-		// light up curren top side
+		// set color depending on gforce
 		case 30:
-			//resetAllLed();
-			//setSideColor(topCubePosition, colors[topCubePosition]);
-			//setAllLedColor(colors[topCubePosition]);
-			//pixels.show();
+			
 			break;
 
 		// turn off all lights
@@ -184,7 +189,7 @@ void printData()
 	Serial.print("\tZ=");
 	Serial.print(rotZ);
 	Serial.print("\tAccel (g)");*/
-	Serial.print("\tX=");
+	Serial.print("\n\tX=");
 	Serial.print(gForceX);
 	Serial.print("\tY=");
 	Serial.print(gForceY);
@@ -192,46 +197,28 @@ void printData()
 	Serial.print(gForceZ);
 }
 
-bool getPosition()
+int getPosition()
 {
-	int newPos = -1;
-
 	/* X > 0.5 */
 	if (gForceX > 0.5 && gForceY <= 0.5 && gForceY >= -0.5)
-		newPos = 0; /* sdie left */
+		return 0; /* sdie left */
 	
 	/* X > -0.5 && X < 0.5 */
-	else if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY > 0.5)
-		newPos = 1;	/* side back */
-	else if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY <= 0.5 && gForceY >= -0.5 && gForceZ > 0.5)
-		newPos = 2;	 /* top */
-	else if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY <= 0.5 && gForceY >= -0.5 && gForceZ < -0.5)
-		newPos = 3;	 /* bottom */
-	else if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY < -0.5)
-		newPos = 4;	/* side front */
+	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY > 0.5)
+		return 1;	/* side back */
+	
+	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY <= 0.5 && gForceY >= -0.5 && gForceZ > 0.5)
+		return 2;	 /* top */
+	
+	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY <= 0.5 && gForceY >= -0.5 && gForceZ < -0.5)
+		return 3;	 /* bottom */
+	
+	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY < -0.5)
+		return 4;	/* side front */
 
 	/* X < -0.5 */
-	else if (gForceX < -0.5 && gForceY <= 0.5 && gForceY >= -0.5)
-		newPos = 5;	/* side right */
-	
-	if (newPos != -1 && newPos != topCubePosition)
-	{
-		topCubePosition = newPos;
-
-		switch (topCubePosition)
-		{
-			case 0: topCubePositionTxt = "RIGHT"; break;
-			case 1: topCubePositionTxt = "FRONT"; break;
-			case 2: topCubePositionTxt = "BOTTOM"; break;
-			case 3: topCubePositionTxt = "TOP"; break;
-			case 4: topCubePositionTxt = "BACK"; break;
-			case 5: topCubePositionTxt = "LEFT"; break;
-		}
-
-		return true;
-	}
-
-	return false;
+	if (gForceX < -0.5 && gForceY <= 0.5 && gForceY >= -0.5)
+		return 5;	/* side right */
 }
 
 void printPosition()
