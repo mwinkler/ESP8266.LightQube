@@ -53,7 +53,7 @@ void setup()
 	colors[4] = pixels.Color(0, 255, 255);
 	colors[5] = pixels.Color(255, 0, 255);
 
-	state = 5;
+	state = 30;
 }
 
 void loop() 
@@ -111,6 +111,10 @@ void loop()
 		// set color depending on gforce
 		case 30:
 			
+			ledSetAll(pixels.Color(
+				min(gForceX * 128 + 128, 255), 
+				min(gForceY * 128 + 128, 255), 
+				min(gForceZ * 128 + 128, 255)));
 			break;
 
 		// turn off all lights
@@ -201,11 +205,11 @@ int getPosition()
 {
 	/* X > 0.5 */
 	if (gForceX > 0.5 && gForceY <= 0.5 && gForceY >= -0.5)
-		return 0; /* sdie left */
+		return 0; /* left */
 	
 	/* X > -0.5 && X < 0.5 */
 	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY > 0.5)
-		return 1;	/* side back */
+		return 1;	/* back */
 	
 	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY <= 0.5 && gForceY >= -0.5 && gForceZ > 0.5)
 		return 2;	 /* top */
@@ -214,11 +218,11 @@ int getPosition()
 		return 3;	 /* bottom */
 	
 	if (gForceX <= 0.5 && gForceX >= -0.5 && gForceY < -0.5)
-		return 4;	/* side front */
+		return 4;	/* front */
 
 	/* X < -0.5 */
 	if (gForceX < -0.5 && gForceY <= 0.5 && gForceY >= -0.5)
-		return 5;	/* side right */
+		return 5;	/* right */
 }
 
 void printPosition()
