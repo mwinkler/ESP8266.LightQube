@@ -2,6 +2,12 @@
 #include <Wire.h>
 #include <Adafruit_NeoPixel.h>
 
+// config ------------------------
+const int loopDelay = 100;
+const int waitUntilFinishRotation = 1000;
+
+// members ------------------------
+
 #define LED 0			// LED stripe pin
 int LED_COUNT = 24;		// LED count
 
@@ -27,11 +33,11 @@ byte sideLed[6][4] = {
 	{ 4, 5, 6, 7 }		// 5 = left
 };
 
-const int loopDelay = 100;
-const int waitUntilSleep = 2000;
-int positionNotChangedCounter = 0;
-byte currentState = 0;
+int timer = 0;
+byte state = 0;
 
+
+// start ------------------------
 void setup() 
 {
 	Serial.begin(115200);
@@ -56,32 +62,57 @@ void loop()
 
 	if (hasChanged)
 	{
-		positionNotChangedCounter = 0;
-
-		//printPosition();
-		//setLedColor();
-
-		setState(1);
-
-		pixels.show();
-	}
-	else if (currentState > 0)
-	{
-		positionNotChangedCounter++;
+		state = 10;
 	}
 
-	if (currentState > 0 && loopDelay * positionNotChangedCounter > waitUntilSleep)
+	switch (state)
 	{
-		if (currentState == 1)
-		{
-			setState(2);
-			positionNotChangedCounter = 0;
-		}
-		else if (currentState == 2)
-		{
-			setState(3);
-			setState(0);
-		}
+		// sleep -> do nothing
+		case 0:
+			break;
+
+		
+		// cube as rotated -> light each side with color
+		case 10:
+			for (byte i = 0; i < 6; i++)
+			{
+				ledSetSide(i, colors[i]);
+			}
+			timer = 0;
+			state = 15;
+			break;
+
+		// wait cube has finish rotating
+		case 15:
+			timer++;
+			
+			if (timer * loopDelay > waitUntilFinishRotation)
+			{
+				state = 20;
+			}
+			
+			break;
+
+		// light up all sides
+		case 20:
+			ledSetAll(colors[topCubePosition]);
+			state = 0;
+			break;
+
+		
+		// light up curren top side
+		case 30:
+			//resetAllLed();
+			//setSideColor(topCubePosition, colors[topCubePosition]);
+			//setAllLedColor(colors[topCubePosition]);
+			//pixels.show();
+			break;
+
+		// turn off all lights
+		case 40:
+			//resetAllLed();
+			//pixels.show();
+			break;
 	}
 
 	delay(loopDelay);
@@ -208,62 +239,32 @@ void printPosition()
 	Serial.println(topCubePositionTxt);
 }
 
-void resetAllLed()
+void ledResetAll()
 {
 	for (int i = 0; i < LED_COUNT; i++)
 	{
 		pixels.setPixelColor(i, 0, 0, 0);
 	}
+
+	pixels.show();
 }
 
-void setLedColor()
+void ledSetAll(uint32_t color)
 {
 	for (int i = 0; i < LED_COUNT; i++)
 	{
-		pixels.setPixelColor(i, colors[topCubePosition]);
+		pixels.setPixelColor(i, color);
 	}
 	
 	pixels.show();
 }
 
-void setSideColor(byte side, uint32_t color)
+void ledSetSide(byte side, uint32_t color)
 {
 	for (byte i = 0; i < 4; i++)
 	{
 		pixels.setPixelColor(sideLed[side][i], color);
 	}
-}
 
-void setState(byte state)
-{
-	switch (state)
-	{
-		// sleep (do nothing)
-		case 0:
-			break;
-
-		// light up all sides
-		case 1:
-			for (byte i = 0; i < 6; i++)
-			{
-				setSideColor(i, colors[i]);
-				pixels.show();
-			}
-			break;
-
-		// light up curren top side
-		case 2:
-			resetAllLed();
-			setSideColor(topCubePosition, colors[topCubePosition]);
-			pixels.show();
-			break;
-
-		// turn off all lights
-		case 3:
-			resetAllLed();
-			pixels.show();
-			break;
-	}
-
-	currentState = state;
+	pixels.show();
 }
